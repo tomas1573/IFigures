@@ -127,7 +127,12 @@ panels = [processed[2], processed[0], processed[1], ci]
 padding = 60  
 label_space = 30  
 num_panels = len(panels)
-panel_labels = ["Cyan", "Far red", "Red", "Merged"]  
+
+# Use custom labels if provided, otherwise use defaults
+try:
+    panel_labels
+except NameError:
+    panel_labels = ["Cyan", "Far red", "Red", "Merged"]  
 
 #--------- fig size
 fig_width = w * num_panels + padding * (num_panels + 1)
@@ -273,9 +278,13 @@ for i, p in enumerate(panels_z):
     
     fig_combined_ip.insert(tmp.getProcessor(), x_pos, y_pos)
     
-    #--------- label above
-    panel_labels_z = ["Far red", "Red", "Merged"]
-    label = panel_labels_z[i] + " (Z-proj)"
+    #--------- label above - use custom labels for first two channels, then "Merged"
+    if i == 0:
+        label = panel_labels[1] + " (Z-proj)"  # Channel 2 / Far red
+    elif i == 1:
+        label = panel_labels[2] + " (Z-proj)"  # Channel 3 / Red
+    else:
+        label = panel_labels[3] + " (Z-proj)"  # Merged
     label_width = fig_combined_ip.getStringWidth(label)
     fig_combined_ip.drawString(label, x_pos + (w_z - label_width)//2, y_pos - 10)
 

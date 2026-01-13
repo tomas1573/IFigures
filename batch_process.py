@@ -10,6 +10,22 @@ from ij.plugin import ChannelSplitter
 import os
 
 # ===== STEP 1: Get input directory using folder browser =====
+gd_intro = GenericDialog("Batch Processing - Folder Setup")
+gd_intro.addMessage("You will be prompted to select two folders:")
+gd_intro.addMessage(" ")
+gd_intro.addMessage("1. INPUT FOLDER")
+gd_intro.addMessage("   - Contains all the microscopy images you want to process")
+gd_intro.addMessage("   - (e.g., .czi, .tif files)")
+gd_intro.addMessage(" ")
+gd_intro.addMessage("2. OUTPUT FOLDER")
+gd_intro.addMessage("   - Where the processed images will be saved")
+gd_intro.addMessage("   - Can be the same as input or a different location")
+gd_intro.addMessage(" ")
+gd_intro.showDialog()
+
+if gd_intro.wasCanceled():
+    exit()
+
 dc_input = DirectoryChooser("Select INPUT folder containing images")
 input_dir = dc_input.getDirectory()
 
@@ -66,6 +82,12 @@ processed = 0
 failed = 0
 skip_all = False
 
+# Initialize default labels
+last_label_ch1 = "Cyan"
+last_label_ch2 = "Far red"
+last_label_ch3 = "Red"
+last_label_merged = "Merged"
+
 for idx, file_path in enumerate(files, 1):
     filename = os.path.basename(file_path)
     IJ.log(" ")
@@ -108,6 +130,12 @@ for idx, file_path in enumerate(files, 1):
         gd_params.addSlider("Start slice:", 1, slices_img, 1)
         gd_params.addSlider("End slice:", 1, slices_img, slices_img)
         gd_params.addMessage(" ")
+        gd_params.addMessage("Channel labels (top row panels):")
+        gd_params.addStringField("Channel 1 (Cyan):", last_label_ch1, 20)
+        gd_params.addStringField("Channel 2 (Far red):", last_label_ch2, 20)
+        gd_params.addStringField("Channel 3 (Red):", last_label_ch3, 20)
+        gd_params.addStringField("Merged:", last_label_merged, 20)
+        gd_params.addMessage(" ")
         gd_params.addChoice("Action:", ["Process", "Skip this", "Skip all remaining"], "Process")
         gd_params.showDialog()
         
@@ -120,6 +148,10 @@ for idx, file_path in enumerate(files, 1):
         z_slice = int(gd_params.getNextNumber())
         z_start = int(gd_params.getNextNumber())
         z_end = int(gd_params.getNextNumber())
+        label_ch1 = gd_params.getNextString()
+        label_ch2 = gd_params.getNextString()
+        label_ch3 = gd_params.getNextString()
+        label_merged = gd_params.getNextString()
         action = gd_params.getNextChoice()
         
         # Handle skip options
@@ -151,6 +183,12 @@ for idx, file_path in enumerate(files, 1):
         
         IJ.log("Parameters - Blur: {}, Z-slice: {}, Z-range: {}-{}".format(blur_sigma, z_slice, z_start, z_end))
         
+        # Save labels for next image
+        last_label_ch1 = label_ch1
+        last_label_ch2 = label_ch2
+        last_label_ch3 = label_ch3
+        last_label_merged = label_merged
+        
         # Create execution context with parameters
         exec_context = {
             'IJ': IJ,
@@ -165,6 +203,7 @@ for idx, file_path in enumerate(files, 1):
             'zslice': z_slice,
             'z_start': z_start,
             'z_end': z_end,
+            'panel_labels': [label_ch1, label_ch2, label_ch3, label_merged],
             '__name__': '__main__',
             'exit': exit,
         }
