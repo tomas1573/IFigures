@@ -23,7 +23,7 @@ def normalize_channel(img):
 try:
     blur_sigma
 except NameError:
-    blur_sigma = 1.0
+    blur_sigma = 0.0
 
 try:
     zslice
@@ -62,18 +62,17 @@ if roi is not None:
     imp.setRoi(roi)
     IJ.run(imp, "Duplicate...", "duplicate")
     cropped_stack = IJ.getImage()
-    cropped_stack.hide()  # Don't show intermediate result
+    cropped_stack.hide()
 else:
-    # No ROI - duplicate entire image
     IJ.run(imp, "Duplicate...", "duplicate")
     cropped_stack = IJ.getImage()
-    cropped_stack.hide()  # Don't show intermediate result
+    cropped_stack.hide()
 
 #--------- Z slice extraction from cropped stack
 zslice = int(max(1, min(zslice, slices)))
 IJ.run(cropped_stack, "Make Substack...", "slices={} keep".format(zslice))
 cropped = IJ.getImage()
-cropped.hide()  # Don't show intermediate result
+cropped.hide()
 
 #--------- splittanje kanala
 chs = ChannelSplitter.split(cropped)
@@ -81,7 +80,7 @@ chs = ChannelSplitter.split(cropped)
 processed = []
 
 for ch in chs:
-    ch.hide()  # Don't show individual channels
+    ch.hide()
     IJ.run(ch, "Gaussian Blur...", "sigma={}".format(blur_sigma))
     processed.append(ch)
 
@@ -96,9 +95,11 @@ h = processed[0].getHeight()
 stack = ImageStack(w, h)
 
 #--------- normalizacija svih kanala, nastavak sastavljanja
-processed[0] = normalize_channel(processed[0])
-processed[1] = normalize_channel(processed[1]) 
-processed[2] = normalize_channel(processed[2])
+# trenutno po mom shvaćanju normalizacija nije potrebna ukoliko je 
+# tijekom mikroskopiranja sve dobro postimano, tako da za sad nista od ovog
+##processed[0] = normalize_channel(processed[0])
+##processed[1] = normalize_channel(processed[1]) 
+##processed[2] = normalize_channel(processed[2])
 
 stack.addSlice("FarRed", processed[0].getProcessor())
 stack.addSlice("GrayCh1", processed[1].getProcessor())
@@ -118,7 +119,7 @@ ci.setDisplayRange(0, 255, 2)
 
 ci.setActiveChannels("11")
 ci.setMode(CompositeImage.COMPOSITE)
-ci.hide()  # Don't show intermediate result
+ci.hide()
 
 #--------- Layout panela - mijenjanje poretka
 panels = [processed[2], processed[0], processed[1], ci]
@@ -128,7 +129,7 @@ padding = 60
 label_space = 30  
 num_panels = len(panels)
 
-# Use custom labels if provided, otherwise use defaults
+#---------- korištenje labela iz dijaloga
 try:
     panel_labels
 except NameError:
@@ -162,20 +163,16 @@ for i, p in enumerate(panels):
     label_width = fig_ip.getStringWidth(label)
     fig_ip.drawString(label, x_pos + (w - label_width)//2, padding//2)
 
-#--------- Z PROJECTION SECTION
+#--------- Max Z projekcija
 from ij.plugin import ZProjector
 
-# Use provided z_start and z_end (no dialog)
-# Ensure valid range
 z_start = int(max(1, min(z_start, slices)))
 z_end = int(max(z_start, min(z_end, slices)))
 
-#--------- Z projection extraction with selected range from cropped stack
 IJ.run(cropped_stack, "Make Substack...", "slices={}-{} keep".format(z_start, z_end))
 sub_z = IJ.getImage()
-sub_z.hide()  # Don't show intermediate result
+sub_z.hide()
 
-#--------- Split channels first, then do Z-projection on each channel
 chs_z_stack = ChannelSplitter.split(sub_z)
 
 proc_z = []
@@ -188,7 +185,6 @@ for ch_z_stack in chs_z_stack:
     proj_ch = zproj.getProjection()
     proj_ch.hide()
     
-    # Apply Gaussian blur
     IJ.run(proj_ch, "Gaussian Blur...", "sigma={}".format(blur_sigma))
     proc_z.append(proj_ch)
     
@@ -196,7 +192,6 @@ for ch_z_stack in chs_z_stack:
     ch_z_stack.close()
 
 #--------- sastavljanje composita za projection (bez normalizacije)
-# Check if we have at least channels 0 and 1
 if len(proc_z) < 2:
     IJ.error("Image has {} channels, but 2 channels are required for Z-projection.\nOriginal image channels: {}".format(len(proc_z), channels))
     raise SystemExit
@@ -224,9 +219,8 @@ if num_channels_z >= 2:
 
 ci_z.setActiveChannels("11")
 ci_z.setMode(CompositeImage.COMPOSITE)
-ci_z.hide()  # Don't show intermediate result
+ci_z.hide() 
 
-# Close the cropped stack as we're done with it
 cropped_stack.close()
 
 #--------- Combined Figure - single slice top row, z-projection bottom row
@@ -238,7 +232,6 @@ if len(proc_z) > 1:
     panels_z.append(proc_z[1])  # Channel 1
 panels_z.append(ci_z)  # Merged (Ch0 + Ch1)
 
-#--------- fig size - 2 rows, 4 columns
 row_label_space = 30
 fig_combined_width = w * num_panels + padding * (num_panels + 1)
 fig_combined_height = h + h_z + 3 * padding + 2 * row_label_space

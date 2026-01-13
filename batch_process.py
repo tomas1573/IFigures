@@ -1,6 +1,5 @@
 """
 Batch processing wrapper for IFigure.py with interactive parameter preview
-Processes multiple images in a directory with user-defined parameters
 """
 
 from ij import IJ
@@ -9,17 +8,13 @@ from ij.gui import GenericDialog, WaitForUserDialog
 from ij.plugin import ChannelSplitter
 import os
 
-# ===== STEP 1: Get input directory using folder browser =====
+#----------- Selecting input and output folders
 gd_intro = GenericDialog("Batch Processing - Folder Setup")
 gd_intro.addMessage("You will be prompted to select two folders:")
 gd_intro.addMessage(" ")
-gd_intro.addMessage("1. INPUT FOLDER")
-gd_intro.addMessage("   - Contains all the microscopy images you want to process")
-gd_intro.addMessage("   - (e.g., .czi, .tif files)")
+gd_intro.addMessage("1. select input folder")
 gd_intro.addMessage(" ")
-gd_intro.addMessage("2. OUTPUT FOLDER")
-gd_intro.addMessage("   - Where the processed images will be saved")
-gd_intro.addMessage("   - Can be the same as input or a different location")
+gd_intro.addMessage("2. select output folder")
 gd_intro.addMessage(" ")
 gd_intro.showDialog()
 
@@ -35,7 +30,7 @@ if input_dir is None:
 
 IJ.log("Input folder: {}".format(input_dir))
 
-# ===== STEP 2: Get output directory using folder browser =====
+#----------- output folder selection
 dc_output = DirectoryChooser("Select OUTPUT folder for processed images")
 output_dir = dc_output.getDirectory()
 
@@ -45,7 +40,7 @@ if output_dir is None:
 
 IJ.log("Output folder: {}".format(output_dir))
 
-# ===== STEP 3: Get file format =====
+#----------- file format
 gd_setup = GenericDialog("Batch Process - File Format")
 gd_setup.addMessage("Select file format to process:")
 gd_setup.addChoice("File format:", ["czi", "tif", "tiff", "lsm", "nd2"], "czi")
@@ -77,12 +72,12 @@ if len(files) == 0:
 
 IJ.log("Found {} files to process".format(len(files)))
 
-# ===== STEP 2: Batch process all files with per-image parameter selection =====
+#----------- BATCH processing
 processed = 0
 failed = 0
 skip_all = False
 
-# Initialize default labels
+# default labels corresponding to previously used channels on airyscan, might need to be reordered in the future
 last_label_ch1 = "Cyan"
 last_label_ch2 = "Far red"
 last_label_ch3 = "Red"
@@ -107,19 +102,15 @@ for idx, file_path in enumerate(files, 1):
         slices_img = imp.getNSlices()
         roi = imp.getRoi()
         
-        # Set to middle slice initially
-        middle_slice = slices_img // 2
-        imp.setSlice(middle_slice)
-        
         # ===== Let user browse slices with non-modal dialog =====
         wait_dialog = WaitForUserDialog("Preview Slices - Image {}/{}".format(idx, len(files)),
-            "Use the slider at the bottom to browse through slices.\n \nClick OK when you've found the slice you want.")
+            "\nClick OK when you've found the slice you want.")
         wait_dialog.show()
         
         # Get the slice the user stopped on
         current_slice = imp.getSlice()
         
-        # ===== Parameter selection dialog for this image =====
+        #----------- parameter seleciton dialogue
         gd_params = GenericDialog("Image {}/{} - {}".format(idx, len(files), filename))
         gd_params.addMessage("Set parameters for processing:")
         gd_params.addMessage(" ")
