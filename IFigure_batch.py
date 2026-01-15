@@ -273,11 +273,11 @@ for i, p in enumerate(panels_z):
     
     #--------- label above - use custom labels for first two channels, then "Merged"
     if i == 0:
-        label = panel_labels[1] + " (Z-proj)"  # Channel 2 / Far red
+        label = panel_labels[1] + " (Max Z)"  # Channel 2 / Far red
     elif i == 1:
-        label = panel_labels[2] + " (Z-proj)"  # Channel 3 / Red
+        label = panel_labels[2] + " (Max Z)"  # Channel 3 / Red
     else:
-        label = panel_labels[3] + " (Z-proj)"  # Merged
+        label = panel_labels[3] + " (Max Z)"  # Merged
     label_width = fig_combined_ip.getStringWidth(label)
     fig_combined_ip.drawString(label, x_pos + (w_z - label_width)//2, y_pos - 10)
 
