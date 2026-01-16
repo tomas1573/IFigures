@@ -143,8 +143,12 @@ fig_height = h + 2 * padding + label_space  # extra space for labels
 fig = NewImage.createRGBImage("Figure", fig_width, fig_height, 1, NewImage.FILL_BLACK)
 fig_ip = fig.getProcessor()
 
+# Calculate font size based on image width
+# Scale font so it's proportional to image dimensions
+font_size = max(10, int(w / 30.0))  # Adjust divisor (30) to get desired relative size
+
 #--------- font
-fig_ip.setFont(Font("SansSerif", Font.BOLD, 16))
+fig_ip.setFont(Font("SansSerif", Font.BOLD, font_size))
 fig_ip.setColor(Color.white)
 
 for i, p in enumerate(panels):
@@ -239,8 +243,11 @@ fig_combined_height = h + h_z + 3 * padding + 2 * row_label_space
 fig_combined = NewImage.createRGBImage("Combined Figure", fig_combined_width, fig_combined_height, 1, NewImage.FILL_BLACK)
 fig_combined_ip = fig_combined.getProcessor()
 
+# Calculate font size based on image width (consistent with single figure)
+font_size_combined = max(10, int(h / 20.0))
+
 #--------- font
-fig_combined_ip.setFont(Font("SansSerif", Font.BOLD, 16))
+fig_combined_ip.setFont(Font("SansSerif", Font.BOLD, font_size_combined))
 fig_combined_ip.setColor(Color.white)
 
 #--------- Top row - single slice

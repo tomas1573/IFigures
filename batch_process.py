@@ -4,39 +4,76 @@ Batch processing wrapper for IFigure.py with interactive parameter preview
 
 from ij import IJ
 from ij.io import Opener, FileSaver, DirectoryChooser
-from ij.gui import GenericDialog, WaitForUserDialog
+from ij.gui import GenericDialog, WaitForUserDialog, NonBlockingGenericDialog
 from ij.plugin import ChannelSplitter
 import os
+
+# Store selected folders and dialog reference
+selected_input = [None]
+selected_output = [None]
+gd_reference = [None]
+
+def browse_input_folder(event):
+    """Open directory chooser for input folder"""
+    dc = DirectoryChooser("Select INPUT folder containing images")
+    folder = dc.getDirectory()
+    if folder:
+        selected_input[0] = folder
+        # Update the text field in the dialog
+        if gd_reference[0]:
+            gd_reference[0].getStringFields()[0].setText(folder)
+        IJ.log("Input folder selected: {}".format(folder))
+
+def browse_output_folder(event):
+    """Open directory chooser for output folder"""
+    dc = DirectoryChooser("Select OUTPUT folder for processed images")
+    folder = dc.getDirectory()
+    if folder:
+        selected_output[0] = folder
+        # Update the text field in the dialog
+        if gd_reference[0]:
+            gd_reference[0].getStringFields()[1].setText(folder)
+        IJ.log("Output folder selected: {}".format(folder))
 
 #----------- Selecting input and output folders
 gd_intro = GenericDialog("Batch Processing - Folder Setup")
 gd_intro.addMessage(" ")
-gd_intro.addMessage("1. select input folder")
+gd_intro.addMessage("Select folders for batch processing:")
 gd_intro.addMessage(" ")
-gd_intro.addMessage("2. select output folder")
+gd_intro.addStringField("Input folder:", "", 50)
+gd_intro.addButton("Browse Input Folder", browse_input_folder)
 gd_intro.addMessage(" ")
+gd_intro.addStringField("Output folder:", "", 50)
+gd_intro.addButton("Browse Output Folder", browse_output_folder)
+gd_intro.addMessage(" ")
+
+# Store reference to dialog for button callbacks
+gd_reference[0] = gd_intro
+
 gd_intro.showDialog()
 
 if gd_intro.wasCanceled():
     exit()
 
-dc_input = DirectoryChooser("Select INPUT folder containing images")
-input_dir = dc_input.getDirectory()
+# Get the folders - first try the text fields, then fallback to button selections
+input_dir = gd_intro.getNextString().strip()
+output_dir = gd_intro.getNextString().strip()
 
-if input_dir is None:
+# Use button selections if text fields are empty
+if not input_dir:
+    input_dir = selected_input[0]
+if not output_dir:
+    output_dir = selected_output[0]
+
+if input_dir is None or input_dir == "":
     IJ.log("Input folder not selected. Cancelled.")
     exit()
 
-IJ.log("Input folder: {}".format(input_dir))
-
-#----------- output folder selection
-dc_output = DirectoryChooser("Select OUTPUT folder for processed images")
-output_dir = dc_output.getDirectory()
-
-if output_dir is None:
+if output_dir is None or output_dir == "":
     IJ.log("Output folder not selected. Cancelled.")
     exit()
 
+IJ.log("Input folder: {}".format(input_dir))
 IJ.log("Output folder: {}".format(output_dir))
 
 #----------- file format
@@ -101,20 +138,15 @@ for idx, file_path in enumerate(files, 1):
         slices_img = imp.getNSlices()
         roi = imp.getRoi()
         
-        # ===== Let user browse slices with non-modal dialog =====
-        wait_dialog = WaitForUserDialog("Preview Slices - Image {}/{}".format(idx, len(files)),
-            "\nClick OK when you've found the slice you want.")
-        wait_dialog.show()
+        # Get the middle z slice as starting position
+        middle_slice = (slices_img + 1) // 2
         
-        # Get the slice the user stopped on
-        current_slice = imp.getSlice()
-        
-        #----------- parameter seleciton dialogue
-        gd_params = GenericDialog("Image {}/{} - {}".format(idx, len(files), filename))
+        # Create non-blocking dialog with parameters
+        gd_params = NonBlockingGenericDialog("Image {}/{} - {}".format(idx, len(files), filename))
         gd_params.addMessage("Set parameters for processing:")
         gd_params.addMessage(" ")
         gd_params.addSlider("Gaussian Blur Sigma:", 0.0, 5.0, 0.0)
-        gd_params.addSlider("Z-slice to use:", 1, slices_img, current_slice)
+        gd_params.addSlider("Z-slice to use:", 1, slices_img, middle_slice)
         gd_params.addMessage(" ")
         gd_params.addMessage("Z-Projection range (for bottom row):")
         gd_params.addSlider("Start slice:", 1, slices_img, 1)
@@ -198,8 +230,14 @@ for idx, file_path in enumerate(files, 1):
             'exit': exit,
         }
         
-        # Read and execute IFigure_batch.py with context
-        ifigure_path = "/Users/tomas/Desktop/IF/IFigure_batch.py"
+        # Search in the same directory as this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        ifigure_path = os.path.join(script_dir, "IFigure_batch.py")
+        
+        if not os.path.exists(ifigure_path):
+            IJ.error("IFigure_batch.py not found in: {}".format(script_dir))
+            raise SystemExit
+        
         with open(ifigure_path, 'r') as f:
             ifigure_code = f.read()
         
