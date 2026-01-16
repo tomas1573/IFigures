@@ -10,7 +10,6 @@ import os
 
 #----------- Selecting input and output folders
 gd_intro = GenericDialog("Batch Processing - Folder Setup")
-gd_intro.addMessage("You will be prompted to select two folders:")
 gd_intro.addMessage(" ")
 gd_intro.addMessage("1. select input folder")
 gd_intro.addMessage(" ")
@@ -210,11 +209,11 @@ for idx, file_path in enumerate(files, 1):
         result_img = IJ.getImage()
         
         # Save the combined figure
-        output_name = filename.split('.')[0] + "_figure.tif"
+        output_name = filename.split('.')[0] + "_figure.jpeg"
         output_path = os.path.join(output_dir, output_name)
         
         fs = FileSaver(result_img)
-        fs.saveAsTiff(output_path)
+        fs.saveAsJpeg(output_path)
         
         IJ.log("Saved: {}".format(output_path))
         processed += 1
